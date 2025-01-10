@@ -19,7 +19,7 @@ export default function AICrypticLanding() {
       
       // Reset after brief delay
       setTimeout(() => {
-        setGlitchText("What can I help you ship?")
+        setGlitchText("What ai agent can i build for you?")
       }, 100)
     }, 2000)
 
