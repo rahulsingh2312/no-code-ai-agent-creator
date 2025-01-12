@@ -130,15 +130,19 @@ const ChatInterface = () => {
         <div className="border-b border-cyan-900/50 p-4 bg-black">
           <div className="flex justify-between items-center">
             <div 
-              className="md:text-2xl text-sm flex justify-center items-center space-x-4 md:space-x-8 font-bold text-center text-cyan-50"
+              className="md:text-2xl text-xs flex justify-center items-center space-x-4 md:space-x-8 font-bold text-center text-cyan-50"
               style={{
                 textShadow: '0 0 10px rgba(6, 182, 212, 0.5), 0 0 20px rgba(6, 182, 212, 0.3)'
               }}
             >
-              <img src='/bm.png' className="w-10 md:w-16" alt="Bot Logo" />
+               <img 
+                src={`https://image.pollinations.ai/prompt/${globalprompt}`}                  className="w-8 h-8 md:w-12 md:h-12 rounded-full object-cover"
+                  alt="Bot Avatar"
+                />
+              {/* <img src='/bm.png' className="w-10 md:w-16" alt="Bot Logo" /> */}
               <span className="mx-4">{globalprompt?.toUpperCase()} AI Agent</span>
             </div>
-            
+            <div className='md:block hidden'>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
                 <Button 
@@ -184,6 +188,8 @@ const ChatInterface = () => {
                 </div>
               </DialogContent>
             </Dialog>
+            
+</div>
           </div>
         </div>
 
