@@ -1,12 +1,19 @@
 'use client'
+
 import React, { useState, useEffect, useRef } from 'react';
-import { Bot, Paperclip, Mic, Copy, RefreshCw, Volume2, ArrowRight } from 'lucide-react';
+import { SendIcon, Key, Check } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Avatar } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useParams } from 'next/navigation';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface Message {
   id: number;
@@ -19,10 +26,29 @@ const ChatInterface = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [apiKey, setApiKey] = useState('');
+  const [hasStoredKey, setHasStoredKey] = useState(false);
+  const [open, setOpen] = useState(false);
   const chatSessionRef = useRef<any>(null);
+  const globalprompt = decodeURIComponent(params.prompt as string);
 
-  // Initialize chat with the prompt from URL
+  useEffect(() => {
+    // Load API key from localStorage on component mount
+    const savedKey = localStorage.getItem('pvt_key');
+    if (savedKey) {
+      setApiKey(savedKey);
+      setHasStoredKey(true);
+    }
+  }, []);
+
+  const handleSaveApiKey = () => {
+    if (apiKey) {
+      localStorage.setItem('pvt_key', apiKey);
+      setHasStoredKey(true);
+      setOpen(false); // Close the dialog after saving
+    }
+  };
+
   useEffect(() => {
     const initializeChat = async () => {
       if (!params.prompt) return;
@@ -35,8 +61,8 @@ const ChatInterface = () => {
       }]);
 
       try {
-        // Initialize Gemini chat session
-        const genAI = new GoogleGenerativeAI("AIzaSyD7Jqa2sVJ5uKg-wHc6FEh10d8Y8RGd9Kk");
+        const key =  "AIzaSyD7Jqa2sVJ5uKg-wHc6FEh10d8Y8RGd9Kk";
+        const genAI = new GoogleGenerativeAI(key);
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
         
         chatSessionRef.current = await model.startChat({
@@ -61,15 +87,8 @@ const ChatInterface = () => {
     initializeChat();
   }, [params.prompt]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const handleSendMessage = async () => {
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!inputMessage.trim() || isLoading || !chatSessionRef.current) return;
 
     const newMessage: Message = {
@@ -105,84 +124,133 @@ const ChatInterface = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto min-h-[600px] p-4">
-      <Card className="h-full flex flex-col bg-slate-900 border-slate-700">
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+    <div className="min-h-screen bg-[#000000]">
+      <div className="flex flex-col h-screen text-cyan-50">
+        {/* Chat Header */}
+        <div className="border-b border-cyan-900/50 p-4 bg-black">
+          <div className="flex justify-between items-center">
+            <div 
+              className="md:text-2xl text-sm flex justify-center items-center space-x-4 md:space-x-8 font-bold text-center text-cyan-50"
+              style={{
+                textShadow: '0 0 10px rgba(6, 182, 212, 0.5), 0 0 20px rgba(6, 182, 212, 0.3)'
+              }}
+            >
+              <img src='/bm.png' className="w-10 md:w-16" alt="Bot Logo" />
+              <span className="mx-4">{globalprompt?.toUpperCase()} AI Agent</span>
+            </div>
+            
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className={`${
+                    hasStoredKey 
+                      ? 'bg-green-900/20 hover:bg-green-800/30 border-green-800/50' 
+                      : 'bg-cyan-900/20 hover:bg-cyan-800/30 border-cyan-800/50'
+                  } text-cyan-50`}
+                >
+                  {hasStoredKey ? (
+                    <>
+                      <Check className="w-4 h-4 mr-2" />
+                      Solana Key Added
+                    </>
+                  ) : (
+                    <>
+                      <Key className="w-4 h-4 mr-2" />
+                      Add Solana Key
+                    </>
+                  )}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-black border border-cyan-800/50">
+                <DialogHeader>
+                  <DialogTitle className="text-cyan-50">Enter Solana Private Key</DialogTitle>
+                </DialogHeader>
+                <div className="flex flex-col gap-4">
+                  <Input
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="Enter your Solana wallet private key"
+                    className="bg-cyan-950/30 border-cyan-800/50 text-cyan-50"
+                    type="password"
+                  />
+                  <Button 
+                    onClick={handleSaveApiKey}
+                    className="bg-cyan-900/50 hover:bg-cyan-800/50 text-cyan-50 border border-cyan-800/50"
+                  >
+                    Save Key
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+
+        {/* Messages Area */}
+        <ScrollArea className="flex-1 p-4 space-y-6 bg-black">
           {messages.map((message) => (
             <div
               key={message.id}
-              className={`flex items-start gap-3 ${
-                message.sender === 'user' ? 'flex-row-reverse' : ''
-              }`}
+              className={`flex items-start gap-4 ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              <Avatar className={`w-8 h-8 ${
-                message.sender === 'bot'
-                  ? 'bg-blue-900 text-blue-200'
-                  : 'bg-slate-700'
-              }`}>
-                {message.sender === 'bot' ? (
-                  <Bot className="h-4 w-4" />
-                ) : (
-                  <div className="h-4 w-4 rounded-full bg-slate-500" />
-                )}
-              </Avatar>
-              
-              <div className={`group flex flex-col max-w-[80%] ${
-                message.sender === 'user' ? 'items-end' : ''
-              }`}>
-                <div className={`rounded-lg px-4 py-2 ${
+              {message.sender === 'bot' && (
+                <img 
+                  src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/GoslingBFI081223_%2822_of_30%29_%2853388157347%29_%28cropped%29.jpg/800px-GoslingBFI081223_%2822_of_30%29_%2853388157347%29_%28cropped%29.jpg"
+                  className="w-8 h-8 rounded-full object-cover"
+                  alt="Bot Avatar"
+                />
+              )}
+              <div
+                className={`max-w-[80%] mt-3 p-4 rounded-lg ${
                   message.sender === 'user'
-                    ? 'bg-blue-800 text-blue-100'
-                    : 'bg-slate-800 text-slate-100'
-                }`}>
-                  {message.text}
-                </div>
-                
-                {message.sender === 'bot' && (
-                  <div className="flex gap-2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-100">
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-100">
-                      <RefreshCw className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-100">
-                      <Volume2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
+                    ? 'bg-cyan-900/20 border border-cyan-800/50'
+                    : 'bg-cyan-950/30 border border-cyan-900/50'
+                }`}
+                style={{
+                  boxShadow: message.sender === 'bot'
+                    ? '0 0 10px rgba(6, 182, 212, 0.1)'
+                    : 'none'
+                }}
+              >
+                <p className="text-sm text-cyan-50">{message.text}</p>
               </div>
+              {message.sender === 'user' && (
+                <img 
+                  src="https://avatarfiles.alphacoders.com/340/thumb-1920-340439.png"
+                  className="w-8 h-8 rounded-full object-cover"
+                  alt="User Avatar"
+                />
+              )}
             </div>
           ))}
-          <div ref={messagesEndRef} />
+        </ScrollArea>
+
+        {/* Input Area */}
+        <div className="border-t border-cyan-900/50 p-4 bg-black">
+          <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto">
+            <div className="flex gap-2">
+              <Input
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                placeholder={`Get help from ${globalprompt} Agent`}
+                className="flex-1 bg-cyan-950/30 border-cyan-800/50 text-cyan-50 placeholder:text-cyan-500/50"
+              />
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="bg-cyan-900/50 hover:bg-cyan-800/50 text-cyan-50 border border-cyan-800/50"
+                style={{
+                  boxShadow: '0 0 10px rgba(6, 182, 212, 0.2)'
+                }}
+              >
+                {isLoading ? 'Sending...' : 'SENDIT'}
+                <SendIcon className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </form>
         </div>
-        
-        <div className="p-4 border-t border-slate-700">
-          <div className="flex gap-2 items-center">
-            <Input
-              placeholder="Type a message"
-              className="flex-1 bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-400"
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-            />
-            <Button variant="ghost" size="icon" className="text-slate-400 hover:text-slate-100">
-              <Paperclip className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="text-slate-400 hover:text-slate-100">
-              <Mic className="h-4 w-4" />
-            </Button>
-            <Button 
-              className="bg-blue-700 hover:bg-blue-600 text-white"
-              onClick={handleSendMessage}
-              disabled={isLoading}
-            >
-              {isLoading ? 'Sending...' : 'Send Message'}
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </Card>
+      </div>
     </div>
   );
 };
