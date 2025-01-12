@@ -196,8 +196,7 @@ const ChatInterface = () => {
             >
               {message.sender === 'bot' && (
                 <img 
-                  src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/GoslingBFI081223_%2822_of_30%29_%2853388157347%29_%28cropped%29.jpg/800px-GoslingBFI081223_%2822_of_30%29_%2853388157347%29_%28cropped%29.jpg"
-                  className="w-8 h-8 rounded-full object-cover"
+                src={`https://image.pollinations.ai/prompt/${globalprompt}`}                  className="w-8 h-8 rounded-full object-cover"
                   alt="Bot Avatar"
                 />
               )}
